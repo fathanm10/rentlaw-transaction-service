@@ -5,6 +5,9 @@ import lombok.*;
 
 import java.sql.Timestamp;
 
+/**
+ * Main Entity class that saves transaction details and will be saved to the database.
+ */
 @Generated
 @Builder
 @Data

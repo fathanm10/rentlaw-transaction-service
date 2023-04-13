@@ -9,6 +9,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Configures RabbitMQ message binding for receiving and sending messages.
+ */
 @Configuration
 public class RabbitMQConfig {
     // for receiving
@@ -44,6 +47,10 @@ public class RabbitMQConfig {
         return new Jackson2JsonMessageConverter();
     }
 
+    /**
+     * @param connectionFactory Serves both as a template and an entity converter for sending message through message broker.
+     * @return
+     */
     @Bean
     public AmqpTemplate amqpTemplate(ConnectionFactory connectionFactory) {
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);

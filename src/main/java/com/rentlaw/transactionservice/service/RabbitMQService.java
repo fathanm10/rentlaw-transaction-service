@@ -9,6 +9,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+/**
+ * Handles all functionalities using message broker RabbitMQ.
+ */
 @Service
 public class RabbitMQService {
     // for sending
@@ -21,6 +24,9 @@ public class RabbitMQService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RabbitMQService.class);
 
+    /**
+     * @param transaction Consumes message from message broker into a predefined model.
+     */
     @RabbitListener(queues = {"${rabbitmq.queue.name}"})
     public void consume(Transaction transaction) {
         // consumed doesnt have to be in transaction model
@@ -30,6 +36,9 @@ public class RabbitMQService {
         }
     }
 
+    /**
+     * @param transaction Sends an Entity class as a Json Message to message broker.
+     */
     public void sendJsonMessage(Transaction transaction) {
         rabbitTemplate.convertAndSend(exchange, routingKey, transaction);
     }

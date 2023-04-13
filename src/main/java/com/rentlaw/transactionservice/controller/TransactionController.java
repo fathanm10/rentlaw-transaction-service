@@ -17,9 +17,12 @@ import java.net.MalformedURLException;
 import java.sql.Timestamp;
 import java.util.List;
 
+/**
+ * Serves endpoints for using services regarding transactions.
+ */
 @RestController
 @RequestMapping("/")
-public class EmailController {
+public class TransactionController {
     @Autowired
     private EmailService emailService;
     @Autowired

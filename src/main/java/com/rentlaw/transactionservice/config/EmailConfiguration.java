@@ -8,6 +8,9 @@ import org.springframework.mail.javamail.JavaMailSenderImpl;
 
 import java.util.Properties;
 
+/**
+ * Configures protocol and credentials for sending emails.
+ */
 @Configuration
 public class EmailConfiguration {
     @Value("${spring.mail.host}")

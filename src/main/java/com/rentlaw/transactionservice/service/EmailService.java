@@ -11,6 +11,9 @@ import java.net.MalformedURLException;
 import java.net.URL;
 
 
+/**
+ * Handles sending email using SMTP.
+ */
 @Service
 public class EmailService {
     private final JavaMailSender javaMailSender;
