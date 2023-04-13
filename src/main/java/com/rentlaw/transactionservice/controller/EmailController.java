@@ -63,6 +63,7 @@ public class EmailController {
                 .timestamp(new Timestamp(System.currentTimeMillis()))
                 .build();
         transactionRepository.save(transaction);
+        rabbitMQService.sendJsonMessage(transaction);
         return ResponseEntity.ok("transaction sent and saved to database");
     }
 }

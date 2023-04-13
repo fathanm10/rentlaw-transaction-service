@@ -1,6 +1,8 @@
 package com.rentlaw.transactionservice.service;
 
 import com.rentlaw.transactionservice.model.Transaction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,11 +19,14 @@ public class RabbitMQService {
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(RabbitMQService.class);
+
     @RabbitListener(queues = {"${rabbitmq.queue.name}"})
     public void consume(Transaction transaction) {
         // consumed doesnt have to be in transaction model
         if (transaction != null) {
             // create transaction based on consumed message
+            LOGGER.info(String.valueOf(transaction));
         }
     }
 
