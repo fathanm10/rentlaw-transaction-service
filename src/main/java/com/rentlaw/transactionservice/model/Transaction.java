@@ -1,5 +1,6 @@
 package com.rentlaw.transactionservice.model;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -14,6 +15,7 @@ import java.sql.Timestamp;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
+@JsonPropertyOrder({"id, sender, "})
 public class Transaction {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -23,4 +25,5 @@ public class Transaction {
     private String receiver;
     private Timestamp timestamp;
     private TransactionStatus status;
+    private String imageId;
 }

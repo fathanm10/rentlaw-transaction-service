@@ -32,6 +32,7 @@ public class RabbitMQService {
         // consumed doesnt have to be in transaction model
         if (transaction != null) {
             // create transaction based on consumed message
+            // notify email using EmailService
             LOGGER.info(String.valueOf(transaction));
         }
     }
