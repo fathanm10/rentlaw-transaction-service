@@ -25,5 +25,6 @@ public class Transaction {
     private String receiver;
     private Timestamp timestamp;
     private TransactionStatus status;
+    private Long amount;
     private String imageId;
 }

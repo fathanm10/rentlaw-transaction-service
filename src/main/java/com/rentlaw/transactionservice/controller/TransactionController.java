@@ -22,6 +22,7 @@ import java.util.List;
  * Serves endpoints for using services regarding transactions.
  */
 @RestController
+@CrossOrigin(origins = "*", allowedHeaders = "*")
 public class TransactionController {
     @Autowired
     private EmailService emailService;
@@ -49,8 +50,16 @@ public class TransactionController {
     @Operation(
             description = "List Transactions"
     )
-    public List<Transaction> getListTransactions(@PathVariable String user) {
+    public List<Transaction> getListUserTransactions(@PathVariable String user) {
         return transactionRepository.findTransactionsByReceiver(user);
+    }
+
+    @GetMapping("/all")
+    @Operation(
+            description = "All Transactions"
+    )
+    public List<Transaction> getListAllTransactions() {
+        return transactionRepository.findAll();
     }
 
     @PostMapping(value = "/create", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
