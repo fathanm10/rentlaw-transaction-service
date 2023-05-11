@@ -15,7 +15,6 @@ import java.sql.Timestamp;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@JsonPropertyOrder({"id, sender, "})
 public class Transaction {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)

@@ -1,28 +1,36 @@
 package com.rentlaw.transactionservice.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rentlaw.transactionservice.model.Transaction;
 import com.rentlaw.transactionservice.model.TransactionStatus;
+import com.rentlaw.transactionservice.model.User;
 import com.rentlaw.transactionservice.repository.TransactionRepository;
 import com.rentlaw.transactionservice.service.CloudinaryService;
 import com.rentlaw.transactionservice.service.EmailService;
 import com.rentlaw.transactionservice.service.RabbitMQService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.mail.MessagingException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.net.MalformedURLException;
 import java.sql.Timestamp;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Serves endpoints for using services regarding transactions.
  */
 @RestController
 @CrossOrigin(origins = "*", allowedHeaders = "*")
+@RequestMapping("/transaction")
 public class TransactionController {
     @Autowired
     private EmailService emailService;
@@ -32,12 +40,20 @@ public class TransactionController {
     private TransactionRepository transactionRepository;
     @Autowired
     private CloudinaryService cloudinaryService;
+    @Autowired
+    private ObjectMapper objectMapper;
+    @Value("${endpoint.auth.verify}")
+    private String verifyUrl;
+    @Value("${endpoint.host}")
+    private String hostUrl;
 
     @GetMapping("/send-email/{to}")
+    @Operation(
+            summary = "Sends emails to specified email"
+    )
     public ResponseEntity<String> testSendEmailMessage(@PathVariable String to) throws MalformedURLException, MessagingException {
         String subject = "RENTLAW - New Incoming Transaction";
-        String domainUrl = "http://localhost:8080";
-        String confirmUrl = domainUrl + "/confirm/1";
+        String confirmUrl = hostUrl + "/confirm/1";
         String body =
                 "<p>You have a new incoming transaction. Click the link down below to confirm the transaction.</p>" +
                         "<a href=\"" + confirmUrl + "\">Click here</a> ";
@@ -46,30 +62,44 @@ public class TransactionController {
         return ResponseEntity.ok("test message sent");
     }
 
-    @GetMapping("/{user}")
+    @GetMapping("/sent/{user}")
     @Operation(
-            description = "List Transactions"
+            summary = "Lists user transactions sent"
     )
-    public List<Transaction> getListUserTransactions(@PathVariable String user) {
+    public List<Transaction> getListSentUserTransactions(@PathVariable String user) {
+        return transactionRepository.findTransactionsBySender(user);
+    }
+
+    @GetMapping("/received/{user}")
+    @Operation(
+            summary = "Lists user transactions received"
+    )
+    public List<Transaction> getListReceivedUserTransactions(@PathVariable String user) {
         return transactionRepository.findTransactionsByReceiver(user);
     }
 
-    @GetMapping("/all")
+    @GetMapping("/")
     @Operation(
-            description = "All Transactions"
+            summary = "Lists all transactions"
     )
     public List<Transaction> getListAllTransactions() {
         return transactionRepository.findAll();
     }
 
-    @PostMapping(value = "/create", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+    @PostMapping(value = "/", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
     @Operation(
-            description = "Create Transaction"
+            summary = "Creates new transaction",
+            security = { @SecurityRequirement(name = "bearer-key")}
     )
-    public ResponseEntity<Transaction> createTransaction(@RequestParam String sender,
-                                                         @RequestParam String receiver,
-                                                         @RequestPart MultipartFile imageProof) {
-        // TODO: Should verify user before continuing
+    public ResponseEntity createTransaction(@Parameter(hidden = true) @RequestHeader String Authorization,
+                                            @RequestParam String receiver,
+                                            @RequestParam long amount,
+                                            @RequestPart MultipartFile imageProof) {
+        User user = verifyUser(Authorization);
+        String sender = user.getUsername();
+        if (sender == null) {
+            return new ResponseEntity<>("Request not authenticated" ,HttpStatus.BAD_REQUEST);
+        }
         String imageId = cloudinaryService.uploadImage(imageProof);
         TransactionStatus status = TransactionStatus.PENDING;
         Transaction transaction = Transaction.builder()
@@ -77,20 +107,25 @@ public class TransactionController {
                 .receiver(receiver)
                 .status(status)
                 .timestamp(new Timestamp(System.currentTimeMillis()))
+                .amount(amount)
                 .imageId(imageId)
                 .build();
         transaction = transactionRepository.save(transaction);
         return ResponseEntity.ok(transaction);
     }
 
-    @PutMapping("/verify")
+    @PutMapping("/confirm")
     @Operation(
-            description = "Verify Transaction"
+            summary = "Confirms a transaction",
+            security = { @SecurityRequirement(name = "bearer-key")}
     )
-    public ResponseEntity<Transaction> verifyTransaction(@RequestParam long id) {
-        // TODO: Should verify user before continuing
+    public ResponseEntity verifyTransaction(@Parameter(hidden = true) @RequestHeader String Authorization,
+                                            @RequestParam long id) {
+        User user = verifyUser(Authorization);
         Transaction transaction = transactionRepository.getReferenceById(id);
-        // TODO: if transaction.receiver == authorized user, continue
+        if (!transaction.getReceiver().equals(user.getUsername()) || !user.getUsername().equals("admin")) {
+            return new ResponseEntity<>("Authenticated user is not privileged", HttpStatus.BAD_REQUEST);
+        }
         transaction.setStatus(TransactionStatus.CONFIRMED);
         transaction = transactionRepository.save(transaction);
         return ResponseEntity.ok(transaction);
@@ -98,27 +133,60 @@ public class TransactionController {
 
     @PutMapping("/reject")
     @Operation(
-            description = "Reject Transaction"
+            summary = "Rejects a transaction",
+            security = { @SecurityRequirement(name = "bearer-key")}
     )
-    public ResponseEntity<Transaction> rejectTransaction(@RequestParam long id) {
-        // TODO: Should verify user before continuing
+    public ResponseEntity rejectTransaction(@Parameter(hidden = true) @RequestHeader String Authorization,
+                                            @RequestParam long id) {
+        User user = verifyUser(Authorization);
         Transaction transaction = transactionRepository.getReferenceById(id);
-        // TODO: if transaction.receiver == authorized user, continue
+        if (!transaction.getReceiver().equals(user.getUsername()) || !user.getUsername().equals("admin")) {
+            return new ResponseEntity<>("Authenticated user is not privileged", HttpStatus.BAD_REQUEST);
+        }
         transaction.setStatus(TransactionStatus.REJECTED);
         transaction = transactionRepository.save(transaction);
         return ResponseEntity.ok(transaction);
     }
 
-    @DeleteMapping("/delete")
+    @DeleteMapping("/")
     @Operation(
-            description = "Delete Transaction"
+            summary = "Deletes a transaction",
+            security = { @SecurityRequirement(name = "bearer-key")}
     )
-    public ResponseEntity<String> deleteTransaction(@RequestParam long id) {
-        // TODO: Should verify user before continuing
+    public ResponseEntity<String> deleteTransaction(@Parameter(hidden = true) @RequestHeader String Authorization,
+                                                    @RequestParam long id) {
+        User user = verifyUser(Authorization);
         Transaction transaction = transactionRepository.getReferenceById(id);
-        // TODO: if transaction.receiver == authorized user, continue
+        if (!transaction.getReceiver().equals(user.getUsername()) || !user.getUsername().equals("admin")) {
+            return new ResponseEntity<>("Authenticated user is not privileged", HttpStatus.BAD_REQUEST);
+        }
         cloudinaryService.deleteImage(transaction.getImageId());
         transactionRepository.deleteById(id);
         return ResponseEntity.ok("OK");
+    }
+
+    public User verifyUser(String Authorization) {
+        String token = Authorization.substring(7);
+        RestTemplate restTemplate = new RestTemplate();
+
+        // Set the request headers
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        // Set the request body
+        Map<String, String> requestBody = new HashMap<>();
+        requestBody.put("token", token);
+        HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(requestBody, headers);
+
+        // Make the API request
+        ResponseEntity<String> responseEntity;
+        try {
+            responseEntity = restTemplate.postForEntity(verifyUrl, requestEntity, String.class);
+            // Body should be json that is mappable to User class
+            // TODO: Make sure mapping is right
+            return objectMapper.readValue(responseEntity.getBody(), User.class);
+        } catch (Exception e) {
+            return null;
+        }
     }
 }
