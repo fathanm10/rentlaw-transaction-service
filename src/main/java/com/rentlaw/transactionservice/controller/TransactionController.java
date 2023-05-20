@@ -174,8 +174,9 @@ public class TransactionController {
     )
     public ResponseEntity<String> testMessageQueue(@RequestParam String exchange,
                                                    @RequestParam String routingKey,
-                                                   @RequestParam String message) {
-        rabbitMQService.sendAnyObject(message, exchange, routingKey);
+                                                   @RequestParam String message,
+                                                   @RequestParam String queue) {
+        rabbitMQService.sendAnyObject(message, exchange, routingKey, queue);
         return ResponseEntity.ok("Message sent");
     }
 

@@ -1,5 +1,6 @@
 package com.rentlaw.transactionservice.service;
 
+import com.rentlaw.transactionservice.config.RabbitMQConfig;
 import com.rentlaw.transactionservice.model.Transaction;
 import com.rentlaw.transactionservice.model.TransactionDTO;
 import com.rentlaw.transactionservice.model.TransactionStatus;
@@ -30,6 +31,8 @@ public class RabbitMQService {
     private RabbitTemplate rabbitTemplate;
     @Autowired
     private TransactionRepository transactionRepository;
+    @Autowired
+    private RabbitMQConfig rabbitMQConfig;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RabbitMQService.class);
     private final SessionFactory sessionFactory;
@@ -63,10 +66,16 @@ public class RabbitMQService {
      * @param transaction Sends an Entity class as a Json Message to message broker.
      */
     public void sendAnyObject(Object object) {
+        System.out.println(object.toString());
         rabbitTemplate.convertAndSend(exchange, routingKey, object);
     }
     
     public void sendAnyObject(Object object, String exchange, String routingKey) {
+        rabbitTemplate.convertAndSend(exchange, routingKey, object);
+    }
+    
+    public void sendAnyObject(Object object, String exchange, String routingKey, String queue) {
+        rabbitMQConfig.declareBinding(queue, exchange, routingKey);
         rabbitTemplate.convertAndSend(exchange, routingKey, object);
     }
 }
