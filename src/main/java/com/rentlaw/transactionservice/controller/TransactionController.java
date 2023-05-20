@@ -96,10 +96,12 @@ public class TransactionController {
                                             @RequestParam long amount,
                                             @RequestPart MultipartFile imageProof) {
         User user = verifyUser(Authorization);
-        String sender = user.getUsername();
-        if (sender == null) {
-        //     return new ResponseEntity<>("Request not authenticated" ,HttpStatus.BAD_REQUEST);
+        String sender;
+        if (user == null) {
+            //     return new ResponseEntity<>("Request not authenticated" ,HttpStatus.BAD_REQUEST);
             sender = "ANONYMOUS";
+        } else {
+            sender = user.getUsername();
         }
         String imageUrl = cloudinaryService.uploadImage(imageProof);
         TransactionStatus status = TransactionStatus.PENDING;
