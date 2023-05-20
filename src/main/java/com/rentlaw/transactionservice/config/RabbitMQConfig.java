@@ -23,6 +23,15 @@ public class RabbitMQConfig {
 
     @Value("${rabbitmq.routing.key}")
     private String routingKey;
+    // for receiving
+    @Value("${rabbitmq.orchestrator.queue.name}")
+    private String queue2;
+
+    @Value("${rabbitmq.orchestrator.exchange.name}")
+    private String exchange2;
+
+    @Value("${rabbitmq.orchestrator.routing.key}")
+    private String routingKey2;
 
     @Bean
     public Queue queue() {
@@ -40,6 +49,24 @@ public class RabbitMQConfig {
                 .bind(queue())
                 .to(exchange())
                 .with(routingKey);
+    }
+
+    @Bean
+    public Queue queue2() {
+        return new Queue(queue2);
+    }
+
+    @Bean
+    public TopicExchange exchange2() {
+        return new TopicExchange(exchange2);
+    }
+
+    @Bean
+    public Binding binding2() {
+        return BindingBuilder
+                .bind(queue2())
+                .to(exchange2())
+                .with(routingKey2);
     }
 
     @Bean
