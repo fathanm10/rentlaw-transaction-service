@@ -23,6 +23,7 @@ public class Transaction {
     private String sender;
     private String receiver;
     private Timestamp timestamp;
+    @Enumerated(EnumType.STRING)
     private TransactionStatus status;
     private Long amount;
     private String imageUrl;

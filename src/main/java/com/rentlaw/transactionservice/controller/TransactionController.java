@@ -2,6 +2,7 @@ package com.rentlaw.transactionservice.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rentlaw.transactionservice.model.Transaction;
+import com.rentlaw.transactionservice.model.TransactionDTO;
 import com.rentlaw.transactionservice.model.TransactionStatus;
 import com.rentlaw.transactionservice.model.User;
 import com.rentlaw.transactionservice.repository.TransactionRepository;
@@ -114,6 +115,7 @@ public class TransactionController {
                 .imageUrl(imageUrl)
                 .build();
         transaction = transactionRepository.save(transaction);
+        rabbitMQService.sendAnyObject("{\"status\": \"success\"}", "transaction", "upload-payment");
         return ResponseEntity.ok(transaction);
     }
 
@@ -124,14 +126,13 @@ public class TransactionController {
     )
     public ResponseEntity verifyTransaction(@Parameter(hidden = true) @RequestHeader String Authorization,
                                             @RequestParam long id) {
-        Transaction transaction = transactionRepository.getReferenceById(id);
         // User user = verifyUser(Authorization);
         // if (!transaction.getReceiver().equals(user.getUsername()) || !user.getUsername().equals("admin")) {
         //     return new ResponseEntity<>("Authenticated user is not privileged", HttpStatus.BAD_REQUEST);
         // }
-        transaction.setStatus(TransactionStatus.CONFIRMED);
-        transaction = transactionRepository.save(transaction);
-        return ResponseEntity.ok(transaction);
+        TransactionDTO transactionDTO = TransactionDTO.builder().id(id).status(TransactionStatus.CONFIRMED).build();
+        rabbitMQService.sendAnyObject(transactionDTO);
+        return ResponseEntity.ok(transactionDTO);
     }
 
     @PutMapping("/reject")
@@ -141,14 +142,13 @@ public class TransactionController {
     )
     public ResponseEntity rejectTransaction(@Parameter(hidden = true) @RequestHeader String Authorization,
                                             @RequestParam long id) {
-        Transaction transaction = transactionRepository.getReferenceById(id);
         // User user = verifyUser(Authorization);
         // if (!transaction.getReceiver().equals(user.getUsername()) || !user.getUsername().equals("admin")) {
         //     return new ResponseEntity<>("Authenticated user is not privileged", HttpStatus.BAD_REQUEST);
         // }
-        transaction.setStatus(TransactionStatus.REJECTED);
-        transaction = transactionRepository.save(transaction);
-        return ResponseEntity.ok(transaction);
+        TransactionDTO transactionDTO = TransactionDTO.builder().id(id).status(TransactionStatus.REJECTED).build();
+        rabbitMQService.sendAnyObject(transactionDTO);
+        return ResponseEntity.ok(transactionDTO);
     }
 
     @DeleteMapping("/")
@@ -166,6 +166,17 @@ public class TransactionController {
         cloudinaryService.deleteImage(transaction.getImageUrl());
         transactionRepository.deleteById(id);
         return ResponseEntity.ok("OK");
+    }
+
+    @PostMapping("/test/mq")
+    @Operation(
+            summary = "For testing message queue"
+    )
+    public ResponseEntity<String> testMessageQueue(@RequestParam String exchange,
+                                                   @RequestParam String routingKey,
+                                                   @RequestParam String message) {
+        rabbitMQService.sendAnyObject(message, exchange, routingKey);
+        return ResponseEntity.ok("Message sent");
     }
 
     public User verifyUser(String Authorization) {
