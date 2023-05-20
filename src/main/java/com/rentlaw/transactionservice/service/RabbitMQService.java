@@ -45,12 +45,12 @@ public class RabbitMQService {
      * @param transaction Consumes message from message broker into a predefined model.
      */
     @RabbitListener(queues = {"${rabbitmq.queue.name}"})
-    public void consume(TransactionDTO transactionDTO) {
+    public void consume(Object message) {
         // consumed doesnt have to be in transaction model
         try (Session session = sessionFactory.openSession()) {
-            if (transactionDTO != null) {
+            if (message instanceof TransactionDTO transactionDTO) {
                 LOGGER.info(transactionDTO.toString());
-                // create transaction based on consumed message
+                // create transaction based on consumed transactionDTO
                 Transaction transaction = session.get(Transaction.class, transactionDTO.id);
                 transaction.setStatus(transactionDTO.status);
                 transactionRepository.save(transaction);
