@@ -1,8 +1,8 @@
 package com.rentlaw.transactionservice.service;
 
 import com.rentlaw.transactionservice.config.RabbitMQConfig;
+import com.rentlaw.transactionservice.dto.TransactionDTO;
 import com.rentlaw.transactionservice.model.Transaction;
-import com.rentlaw.transactionservice.model.TransactionDTO;
 import com.rentlaw.transactionservice.model.TransactionStatus;
 import com.rentlaw.transactionservice.repository.TransactionRepository;
 
@@ -53,7 +53,6 @@ public class RabbitMQService {
                 // create transaction based on consumed message
                 Transaction transaction = session.get(Transaction.class, transactionDTO.id);
                 transaction.setStatus(transactionDTO.status);
-                transactionRepository.save(transaction);
                 transactionRepository.save(transaction);
             }
         } catch (Exception e) {

@@ -1,8 +1,9 @@
 package com.rentlaw.transactionservice.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rentlaw.transactionservice.dto.AuthorizationDTO;
+import com.rentlaw.transactionservice.dto.TransactionDTO;
 import com.rentlaw.transactionservice.model.Transaction;
-import com.rentlaw.transactionservice.model.TransactionDTO;
 import com.rentlaw.transactionservice.model.TransactionStatus;
 import com.rentlaw.transactionservice.model.User;
 import com.rentlaw.transactionservice.repository.TransactionRepository;
@@ -13,6 +14,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.mail.MessagingException;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -48,43 +54,58 @@ public class TransactionController {
     @Value("${endpoint.host}")
     private String hostUrl;
 
-    @GetMapping("/send-email/{to}")
+    // @GetMapping("/send-email/{to}")
+    // @Operation(
+    //         summary = "Sends emails to specified email"
+    // )
+    // public ResponseEntity<String> testSendEmailMessage(@PathVariable String to) throws MalformedURLException, MessagingException {
+    //     String subject = "RENTLAW - New Incoming Transaction";
+    //     String confirmUrl = hostUrl + "/confirm?id=1";
+    //     String body =
+    //             "<p>You have a new incoming transaction. Click the link down below to confirm the transaction.</p>" +
+    //                     "<a href=\"" + confirmUrl + "\">Click here</a> ";
+    //     String imageUrl = "https://i.pinimg.com/564x/b8/cb/bf/b8cbbf59e72d2bf2770ff827b0990bc8.jpg";
+    //     emailService.sendEmail(to, subject, body, imageUrl);
+    //     return ResponseEntity.ok("test message sent");
+    // }
+
+    @GetMapping("/sent/")
     @Operation(
-            summary = "Sends emails to specified email"
+            summary = "Lists user transactions sent",
+            security = { @SecurityRequirement(name = "bearer-key")}
     )
-    public ResponseEntity<String> testSendEmailMessage(@PathVariable String to) throws MalformedURLException, MessagingException {
-        String subject = "RENTLAW - New Incoming Transaction";
-        String confirmUrl = hostUrl + "/confirm/1";
-        String body =
-                "<p>You have a new incoming transaction. Click the link down below to confirm the transaction.</p>" +
-                        "<a href=\"" + confirmUrl + "\">Click here</a> ";
-        String imageUrl = "https://i.pinimg.com/564x/b8/cb/bf/b8cbbf59e72d2bf2770ff827b0990bc8.jpg";
-        emailService.sendEmail(to, subject, body, imageUrl);
-        return ResponseEntity.ok("test message sent");
+    public List<Transaction> getListSentUserTransactions(@Parameter(hidden = true) @RequestHeader String Authorization) {
+        var user = verifyUser(Authorization);
+        if (user.username.equals("admin")) {
+            return transactionRepository.findAll();
+        }
+        return transactionRepository.findTransactionsBySender(user.username);
     }
 
-    @GetMapping("/sent/{user}")
+    @GetMapping("/received/")
     @Operation(
-            summary = "Lists user transactions sent"
+            summary = "Lists user transactions received",
+            security = { @SecurityRequirement(name = "bearer-key")}
     )
-    public List<Transaction> getListSentUserTransactions(@PathVariable String user) {
-        return transactionRepository.findTransactionsBySender(user);
-    }
-
-    @GetMapping("/received/{user}")
-    @Operation(
-            summary = "Lists user transactions received"
-    )
-    public List<Transaction> getListReceivedUserTransactions(@PathVariable String user) {
-        return transactionRepository.findTransactionsByReceiver(user);
+    public List<Transaction> getListReceivedUserTransactions(@Parameter(hidden = true) @RequestHeader String Authorization) {
+        var user = verifyUser(Authorization);
+        if (user.username.equals("admin")) {
+            return transactionRepository.findAll();
+        }
+        return transactionRepository.findTransactionsByReceiver(user.username);
     }
 
     @GetMapping("/")
     @Operation(
-            summary = "Lists all transactions"
+            summary = "Lists all / user transactions",
+            security = { @SecurityRequirement(name = "bearer-key")}
     )
-    public List<Transaction> getListAllTransactions() {
-        return transactionRepository.findAll();
+    public List<Transaction> getListAllTransactions(@Parameter(hidden = true) @RequestHeader String Authorization) {
+        var user = verifyUser(Authorization);
+        if (user.username.equals("admin")) {
+            return transactionRepository.findAll();
+        }
+        return transactionRepository.findTransactionsBySenderOrReceiver(user.username, user.username);
     }
 
     @PostMapping(value = "/", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
@@ -96,13 +117,12 @@ public class TransactionController {
                                             @RequestParam String receiver,
                                             @RequestParam long amount,
                                             @RequestPart MultipartFile imageProof) {
-        User user = verifyUser(Authorization);
+        var user = verifyUser(Authorization);
         String sender;
         if (user == null) {
-            //     return new ResponseEntity<>("Request not authenticated" ,HttpStatus.BAD_REQUEST);
             sender = "ANONYMOUS";
         } else {
-            sender = user.getUsername();
+            sender = user.username;
         }
         String imageUrl = cloudinaryService.uploadImage(imageProof);
         TransactionStatus status = TransactionStatus.PENDING;
@@ -126,13 +146,14 @@ public class TransactionController {
     )
     public ResponseEntity verifyTransaction(@Parameter(hidden = true) @RequestHeader String Authorization,
                                             @RequestParam long id) {
-        // User user = verifyUser(Authorization);
-        // if (!transaction.getReceiver().equals(user.getUsername()) || !user.getUsername().equals("admin")) {
-        //     return new ResponseEntity<>("Authenticated user is not privileged", HttpStatus.BAD_REQUEST);
-        // }
-        TransactionDTO transactionDTO = TransactionDTO.builder().id(id).status(TransactionStatus.CONFIRMED).build();
-        rabbitMQService.sendAnyObject(transactionDTO);
-        return ResponseEntity.ok(transactionDTO);
+        var user = verifyUser(Authorization);
+        Transaction transaction = transactionRepository.getReferenceById(id);
+        if (transaction.getReceiver().equals(user.username) || user.username.equals("admin")) {
+            TransactionDTO transactionDTO = TransactionDTO.builder().id(id).status(TransactionStatus.CONFIRMED).build();
+            rabbitMQService.sendAnyObject(transactionDTO);
+            return ResponseEntity.ok(transactionDTO);
+        }
+        return new ResponseEntity<>("Authenticated user is not privileged", HttpStatus.BAD_REQUEST);
     }
 
     @PutMapping("/reject")
@@ -142,13 +163,14 @@ public class TransactionController {
     )
     public ResponseEntity rejectTransaction(@Parameter(hidden = true) @RequestHeader String Authorization,
                                             @RequestParam long id) {
-        // User user = verifyUser(Authorization);
-        // if (!transaction.getReceiver().equals(user.getUsername()) || !user.getUsername().equals("admin")) {
-        //     return new ResponseEntity<>("Authenticated user is not privileged", HttpStatus.BAD_REQUEST);
-        // }
-        TransactionDTO transactionDTO = TransactionDTO.builder().id(id).status(TransactionStatus.REJECTED).build();
-        rabbitMQService.sendAnyObject(transactionDTO);
-        return ResponseEntity.ok(transactionDTO);
+        var user = verifyUser(Authorization);
+        Transaction transaction = transactionRepository.getReferenceById(id);
+        if (transaction.getReceiver().equals(user.username) || user.username.equals("admin")) {
+            TransactionDTO transactionDTO = TransactionDTO.builder().id(id).status(TransactionStatus.REJECTED).build();
+            rabbitMQService.sendAnyObject(transactionDTO);
+            return ResponseEntity.ok(transactionDTO);
+        }
+        return new ResponseEntity<>("Authenticated user is not privileged", HttpStatus.BAD_REQUEST);
     }
 
     @DeleteMapping("/")
@@ -158,14 +180,14 @@ public class TransactionController {
     )
     public ResponseEntity<String> deleteTransaction(@Parameter(hidden = true) @RequestHeader String Authorization,
                                                     @RequestParam long id) {
-        User user = verifyUser(Authorization);
+        var user = verifyUser(Authorization);
         Transaction transaction = transactionRepository.getReferenceById(id);
-        if (!transaction.getReceiver().equals(user.getUsername()) || !user.getUsername().equals("admin")) {
-            return new ResponseEntity<>("Authenticated user is not privileged", HttpStatus.BAD_REQUEST);
+        if (transaction.getReceiver().equals(user.username) || user.username.equals("admin")) {
+            cloudinaryService.deleteImage(transaction.getImageUrl());
+            transactionRepository.deleteById(id);
+            return ResponseEntity.ok("Transaction Deleted");
         }
-        cloudinaryService.deleteImage(transaction.getImageUrl());
-        transactionRepository.deleteById(id);
-        return ResponseEntity.ok("OK");
+        return new ResponseEntity<>("Authenticated user is not privileged", HttpStatus.BAD_REQUEST);
     }
 
     @PostMapping("/test/mq")
@@ -180,7 +202,7 @@ public class TransactionController {
         return ResponseEntity.ok("Message sent");
     }
 
-    public User verifyUser(String Authorization) {
+    public AuthorizationDTO verifyUser(String Authorization) {
         String token = Authorization.substring(7);
         RestTemplate restTemplate = new RestTemplate();
 
@@ -199,7 +221,8 @@ public class TransactionController {
             responseEntity = restTemplate.postForEntity(verifyUrl, requestEntity, String.class);
             // Body should be json that is mappable to User class
             // TODO: Make sure mapping is right
-            return objectMapper.readValue(responseEntity.getBody(), User.class);
+            System.out.println(responseEntity.getBody());
+            return objectMapper.readValue(responseEntity.getBody(), AuthorizationDTO.class);
         } catch (Exception e) {
             return null;
         }

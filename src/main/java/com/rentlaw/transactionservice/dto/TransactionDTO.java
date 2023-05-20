@@ -1,4 +1,6 @@
-package com.rentlaw.transactionservice.model;
+package com.rentlaw.transactionservice.dto;
+
+import com.rentlaw.transactionservice.model.TransactionStatus;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
