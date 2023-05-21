@@ -31,6 +31,8 @@ public class TransactionService {
     private TransactionRepository transactionRepository;
     @Autowired
     private ObjectMapper objectMapper;
+    @Autowired
+    private CloudinaryService cloudinaryService;
     @Value("${endpoint.auth.verify}")
     private String verifyUrl;
     @Value("${endpoint.host}")
@@ -81,6 +83,17 @@ public class TransactionService {
             }
             LOGGER.info(transaction.toString());
             return transactionRepository.save(transaction);
+        }
+    }
+
+    public void deleteTransaction(Long id) {
+        try (Session session = sessionFactory.openSession()) {
+            var transaction = session.get(Transaction.class, id);
+            cloudinaryService.deleteImage(transaction.getImageId());
+            session.beginTransaction();
+            session.remove(transaction);
+            session.getTransaction().commit();
+            LOGGER.info("Removed transaction with id "+id);
         }
     }
 

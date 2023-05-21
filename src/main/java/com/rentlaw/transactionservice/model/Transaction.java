@@ -27,4 +27,5 @@ public class Transaction {
     private TransactionStatus status;
     private Long amount;
     private String imageUrl;
+    private String imageId;
 }

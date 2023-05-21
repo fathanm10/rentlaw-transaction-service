@@ -17,7 +17,7 @@ public class CloudinaryService {
         try {
             var uploader = cloudinary.uploader();
             Map<String, Object> uploadResult = uploader.upload(imageFile.getBytes(), ObjectUtils.emptyMap());
-            return uploadResult.get("url").toString();
+            return uploadResult.get("public_id").toString();
         } catch (Exception e) {
             return null;
         }

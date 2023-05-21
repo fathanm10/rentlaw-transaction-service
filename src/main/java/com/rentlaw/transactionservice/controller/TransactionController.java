@@ -13,8 +13,6 @@ import com.rentlaw.transactionservice.service.TransactionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -34,8 +32,6 @@ import java.util.List;
 @RequestMapping("/transaction")
 public class TransactionController {
     @Autowired
-    private EmailService emailService;
-    @Autowired
     private RabbitMQService rabbitMQService;
     @Autowired
     private TransactionRepository transactionRepository;
@@ -47,6 +43,8 @@ public class TransactionController {
     private String exchangeOrchestrator;
     @Value("${rabbitmq.routingkey.orchestrator}")
     private String routingKeyOrchestrator;
+    @Value("${rabbitmq.queue.orchestrator}")
+    private String queueOrchestrator;
 
     @GetMapping("/sent/")
     @Operation(summary = "Lists user transactions sent", security = { @SecurityRequirement(name = "bearer-key") })
@@ -86,7 +84,6 @@ public class TransactionController {
             @RequestParam String receiver,
             @RequestParam long amount,
             @RequestParam long productId) {
-        var user = transactionService.verifyUser(Authorization);
         CreateTransactionDTO createTransactionDTO = CreateTransactionDTO.builder()
                 .token(Authorization.substring(7))
                 .receiver(receiver)
@@ -112,9 +109,11 @@ public class TransactionController {
         var user = transactionService.verifyUser(Authorization);
         var transaction = transactionRepository.getReferenceById(id);
         if (transaction.getSender().equals(user.username) || user.username.equals("admin")) {
-            String imageUrl = cloudinaryService.uploadImage(imageProof);
+            var imageId = cloudinaryService.uploadImage(imageProof);
+            var imageUrl = cloudinaryService.getImageUrl(imageId);
             transaction.setImageUrl(imageUrl);
-            rabbitMQService.sendAnyObject(new Message(), exchangeOrchestrator, routingKeyOrchestrator);
+            transaction.setImageId(imageId);
+            rabbitMQService.sendAnyObject(new Message(), exchangeOrchestrator, routingKeyOrchestrator, queueOrchestrator);
             return ResponseEntity.ok(transactionRepository.save(transaction));
         }
         return ResponseEntity.badRequest().body("Upload proof failed");
@@ -155,8 +154,7 @@ public class TransactionController {
         var user = transactionService.verifyUser(Authorization);
         Transaction transaction = transactionRepository.getReferenceById(id);
         if (transaction.getReceiver().equals(user.username) || user.username.equals("admin")) {
-            cloudinaryService.deleteImage(transaction.getImageUrl());
-            transactionRepository.deleteById(id);
+            transactionService.deleteTransaction(id);
             return ResponseEntity.ok("Transaction Deleted");
         }
         return new ResponseEntity<>("Authenticated user is not privileged", HttpStatus.BAD_REQUEST);

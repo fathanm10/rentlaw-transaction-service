@@ -23,6 +23,10 @@ public class RabbitMQConfig {
     private String queue2;
     @Value("${rabbitmq.routingkey.status.transaction}")
     private String routingKey2;
+    @Value("${rabbitmq.queue.delete.transaction}")
+    private String queue3;
+    @Value("${rabbitmq.routingkey.delete.transaction}")
+    private String routingKey3;
     @Value("${rabbitmq.exchange.transaction}")
     private String exchange;
 
@@ -64,6 +68,19 @@ public class RabbitMQConfig {
                 .bind(queue2())
                 .to(exchange())
                 .with(routingKey2);
+    }
+
+    @Bean
+    public Queue queue3() {
+        return new Queue(queue3);
+    }
+
+    @Bean
+    public Binding binding3() {
+        return BindingBuilder
+                .bind(queue3())
+                .to(exchange())
+                .with(routingKey3);
     }
 
     @Bean

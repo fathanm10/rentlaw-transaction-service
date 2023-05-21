@@ -4,6 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rentlaw.transactionservice.config.RabbitMQConfig;
 import com.rentlaw.transactionservice.dto.CreateTransactionDTO;
 import com.rentlaw.transactionservice.dto.EditTransactionStatusDTO;
+
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.util.Map;
 
 import org.hibernate.SessionFactory;
@@ -73,6 +77,28 @@ public class RabbitMQService {
         }
     }
 
+    /**
+     * @param transaction Consumes message from message broker into a predefined
+     *                    model.
+     */
+    @RabbitListener(queues = { "${rabbitmq.queue.delete.transaction}" })
+    public void consumeDeleteTransaction(DeleteTransactionDTO deleteTransactionDTO,
+            @Headers Map<String, Object> headers) {
+        try {
+            if (deleteTransactionDTO != null) {
+                transactionService.deleteTransaction(deleteTransactionDTO.id);
+            }
+        } catch (Exception e) {
+            LOGGER.info(e.toString());
+        }
+    }
+
+    @Data
+    @NoArgsConstructor
+    static class DeleteTransactionDTO {
+        Long id;
+    }
+
     // @RabbitListener(queues = {"${rabbitmq.queue.status.transaction}", })
     // public void consumeGeneral(String message, @Headers Map<String, Object>
     // headers) {
@@ -94,10 +120,6 @@ public class RabbitMQService {
     // LOGGER.error("Failed to process RabbitMQ message: " + e.getMessage());
     // }
     // }
-
-    public void sendAnyObject(Object object, String exchange, String routingKey) {
-        rabbitTemplate.convertAndSend(exchange, routingKey, object);
-    }
 
     public void sendAnyObject(Object object, String exchange, String routingKey, String queue) {
         rabbitMQConfig.declareBinding(queue, exchange, routingKey);
