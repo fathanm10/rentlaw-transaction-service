@@ -1,7 +1,5 @@
 package com.rentlaw.transactionservice.dto;
 
-import com.rentlaw.transactionservice.model.TransactionStatus;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,7 +9,9 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class TransactionDTO {
-    public long id;
-    public TransactionStatus status;
+public class CreateTransactionDTO {
+    public String token;
+    public String receiver;
+    public Long amount;
+    public Long productId;
 }

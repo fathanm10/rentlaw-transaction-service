@@ -11,9 +11,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AuthorizationDTO {
     public String token_type;
-    public long user_id;
+    public Long user_id;
     public String username;
     public String email;
     public String first_name;
     public String last_name;
-} 
+}

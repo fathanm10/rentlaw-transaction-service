@@ -15,24 +15,23 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class RabbitMQConfig {
-    // for receiving
-    @Value("${rabbitmq.queue.name}")
+    @Value("${rabbitmq.queue.create.transaction}")
     private String queue;
-
-    @Value("${rabbitmq.exchange.name}")
+    @Value("${rabbitmq.routingkey.create.transaction}")
+    private String routingKey;
+    @Value("${rabbitmq.queue.status.transaction}")
+    private String queue2;
+    @Value("${rabbitmq.routingkey.status.transaction}")
+    private String routingKey2;
+    @Value("${rabbitmq.exchange.transaction}")
     private String exchange;
 
-    @Value("${rabbitmq.routing.key}")
-    private String routingKey;
-    // for receiving
     @Value("${rabbitmq.orchestrator.queue.name}")
-    private String queue2;
-
+    private String queueOrchestrator;
     @Value("${rabbitmq.orchestrator.exchange.name}")
-    private String exchange2;
-
+    private String exchangeOrchestrator;
     @Value("${rabbitmq.orchestrator.routing.key}")
-    private String routingKey2;
+    private String routingKeyOrchestrator;
     @Autowired
     private AmqpAdmin amqpAdmin;
 
@@ -60,16 +59,29 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public TopicExchange exchange2() {
-        return new TopicExchange(exchange2);
-    }
-
-    @Bean
     public Binding binding2() {
         return BindingBuilder
                 .bind(queue2())
-                .to(exchange2())
+                .to(exchange())
                 .with(routingKey2);
+    }
+
+    @Bean
+    public Queue queueOrchestrator() {
+        return new Queue(queueOrchestrator);
+    }
+
+    @Bean
+    public TopicExchange exchangeOrchestrator() {
+        return new TopicExchange(exchangeOrchestrator);
+    }
+
+    @Bean
+    public Binding bindingOrchestrator() {
+        return BindingBuilder
+                .bind(queueOrchestrator())
+                .to(exchangeOrchestrator())
+                .with(routingKeyOrchestrator);
     }
 
     @Bean
@@ -78,7 +90,8 @@ public class RabbitMQConfig {
     }
 
     /**
-     * @param connectionFactory Serves both as a template and an entity converter for sending message through message broker.
+     * @param connectionFactory Serves both as a template and an entity converter
+     *                          for sending message through message broker.
      * @return
      */
     @Bean

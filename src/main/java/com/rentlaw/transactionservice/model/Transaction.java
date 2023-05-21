@@ -1,6 +1,5 @@
 package com.rentlaw.transactionservice.model;
 
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,6 +19,7 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "id", nullable = false)
     private Long id;
+    private Long productId;
     private String sender;
     private String receiver;
     private Timestamp timestamp;

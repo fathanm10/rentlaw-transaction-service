@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import java.net.MalformedURLException;
 import java.net.URL;
 
-
 /**
  * Handles sending email using SMTP.
  */
@@ -31,7 +30,8 @@ public class EmailService {
         javaMailSender.send(message);
     }
 
-    public void sendEmail(String to, String subject, String body, String imageUrl) throws MessagingException, MalformedURLException {
+    public void sendEmail(String to, String subject, String body, String imageUrl)
+            throws MessagingException, MalformedURLException {
         MimeMessage message = javaMailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true);
         helper.setTo(to);
@@ -40,6 +40,5 @@ public class EmailService {
         helper.addInline("image", new URLDataSource(new URL(imageUrl)));
         javaMailSender.send(message);
     }
-
 
 }
