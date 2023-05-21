@@ -26,11 +26,11 @@ public class RabbitMQConfig {
     @Value("${rabbitmq.exchange.transaction}")
     private String exchange;
 
-    @Value("${rabbitmq.orchestrator.queue.name}")
+    @Value("${rabbitmq.queue.orchestrator}")
     private String queueOrchestrator;
-    @Value("${rabbitmq.orchestrator.exchange.name}")
+    @Value("${rabbitmq.exchange.orchestrator}")
     private String exchangeOrchestrator;
-    @Value("${rabbitmq.orchestrator.routing.key}")
+    @Value("${rabbitmq.routingkey.orchestrator}")
     private String routingKeyOrchestrator;
     @Autowired
     private AmqpAdmin amqpAdmin;

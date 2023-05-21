@@ -43,9 +43,9 @@ public class TransactionController {
     private CloudinaryService cloudinaryService;
     @Autowired
     private TransactionService transactionService;
-    @Value("${rabbitmq.orchestrator.exchange.name}")
+    @Value("${rabbitmq.exchange.orchestrator}")
     private String exchangeOrchestrator;
-    @Value("${rabbitmq.orchestrator.routing.key}")
+    @Value("${rabbitmq.routingkey.orchestrator}")
     private String routingKeyOrchestrator;
 
     @GetMapping("/sent/")
