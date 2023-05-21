@@ -6,6 +6,8 @@ import java.util.Map;
 
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -34,6 +36,7 @@ public class TransactionService {
     @Value("${endpoint.host}")
     private String hostUrl;
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(RabbitMQService.class);
     private final SessionFactory sessionFactory;
 
     @Autowired
@@ -42,6 +45,7 @@ public class TransactionService {
     }
 
     public Transaction createTransaction(CreateTransactionDTO createTransactionDTO) {
+        Transaction transaction = null;
         try (Session session = sessionFactory.openSession()) {
             var user = verifyUser("Bearer " + createTransactionDTO.token);
             String sender;
@@ -51,7 +55,7 @@ public class TransactionService {
                 sender = user.username;
             }
             TransactionStatus status = TransactionStatus.PENDING;
-            Transaction transaction = Transaction.builder()
+            transaction = Transaction.builder()
                     .productId(createTransactionDTO.productId)
                     .sender(sender)
                     .receiver(createTransactionDTO.receiver)
@@ -59,8 +63,12 @@ public class TransactionService {
                     .timestamp(new Timestamp(System.currentTimeMillis()))
                     .amount(createTransactionDTO.amount)
                     .build();
-            return transactionRepository.save(transaction);
+            session.beginTransaction();
+            session.persist(transaction);
+            session.getTransaction().commit();
         }
+        LOGGER.info(transaction.toString());
+        return transaction;
     }
 
     public Transaction editTransactionStatus(EditTransactionStatusDTO editTransactionStatusDTO) {
@@ -71,6 +79,7 @@ public class TransactionService {
             if (transaction.getReceiver().equals(user.username) || user.username.equals("admin")) {
                 transaction.setStatus(editTransactionStatusDTO.status);
             }
+            LOGGER.info(transaction.toString());
             return transactionRepository.save(transaction);
         }
     }
@@ -94,8 +103,9 @@ public class TransactionService {
             responseEntity = restTemplate.postForEntity(verifyUrl, requestEntity, String.class);
             // Body should be json that is mappable to User class
             // TODO: Make sure mapping is right
-            System.out.println(responseEntity.getBody());
-            return objectMapper.readValue(responseEntity.getBody(), AuthorizationDTO.class);
+            var authorizationDTO = objectMapper.readValue(responseEntity.getBody(), AuthorizationDTO.class);
+            LOGGER.info(authorizationDTO.toString());
+            return authorizationDTO;
         } catch (Exception e) {
             return null;
         }
