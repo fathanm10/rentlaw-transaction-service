@@ -13,6 +13,11 @@ import com.rentlaw.transactionservice.service.TransactionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -97,23 +102,22 @@ public class TransactionController {
     public ResponseEntity addTransactionProof(@Parameter(hidden = true) @RequestHeader String Authorization,
             @RequestParam long id,
             @RequestPart MultipartFile imageProof) {
-        var user = transactionService.verifyUser(Authorization);
-        String sender;
-        if (user == null) {
-            sender = "ANONYMOUS";
-        } else {
-            sender = user.username;
-        }
-        String imageUrl = cloudinaryService.uploadImage(imageProof);
-        Transaction transaction = transactionRepository.getReferenceById(id);
-        transaction.setImageUrl(imageUrl);
-        transactionRepository.save(transaction);
-        transaction = transactionRepository.save(transaction);
+        
+        @Data
+        @NoArgsConstructor
         class Message {
             String status = "success";
         }
-        rabbitMQService.sendAnyObject(new Message(), exchangeOrchestrator, routingKeyOrchestrator);
-        return ResponseEntity.ok(transaction);
+        
+        var user = transactionService.verifyUser(Authorization);
+        var transaction = transactionRepository.getReferenceById(id);
+        if (transaction.getSender().equals(user.username) || user.username.equals("admin")) {
+            String imageUrl = cloudinaryService.uploadImage(imageProof);
+            transaction.setImageUrl(imageUrl);
+            rabbitMQService.sendAnyObject(new Message(), exchangeOrchestrator, routingKeyOrchestrator);
+            return ResponseEntity.ok(transactionRepository.save(transaction));
+        }
+        return ResponseEntity.badRequest().body("Upload proof failed");
     }
 
     @PutMapping("/confirm")
