@@ -46,11 +46,9 @@ public class RabbitMQService {
      *                    model.
      */
     @RabbitListener(queues = { "${rabbitmq.queue.status.transaction}" })
-    public void consumeStatusTransaction(String message,
+    public void consumeStatusTransaction(EditTransactionStatusDTO editTransactionStatusDTO,
             @Headers Map<String, Object> headers) {
-        ObjectMapper objectMapper = new ObjectMapper();
         try {
-            var editTransactionStatusDTO = objectMapper.readValue(message, EditTransactionStatusDTO.class);
             if (editTransactionStatusDTO != null) {
                 transactionService.editTransactionStatus(editTransactionStatusDTO);
             }
@@ -64,11 +62,9 @@ public class RabbitMQService {
      *                    model.
      */
     @RabbitListener(queues = { "${rabbitmq.queue.create.transaction}" })
-    public void consumeCreateTransaction(String message,
+    public void consumeCreateTransaction(CreateTransactionDTO createTransactionDTO,
             @Headers Map<String, Object> headers) {
-        ObjectMapper objectMapper = new ObjectMapper();
         try {
-            var createTransactionDTO = objectMapper.readValue(message, CreateTransactionDTO.class);
             if (createTransactionDTO != null) {
                 transactionService.createTransaction(createTransactionDTO);
             }
