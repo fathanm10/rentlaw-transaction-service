@@ -126,7 +126,7 @@ public class TransactionController {
         var user = transactionService.verifyUser(Authorization);
         Transaction transaction = transactionRepository.getReferenceById(id);
         if (transaction.getReceiver().equals(user.username) || user.username.equals("admin")) {
-            var editTransactionStatusDTO = EditTransactionStatusDTO.builder().id(id).status(TransactionStatus.CONFIRMED)
+            var editTransactionStatusDTO = EditTransactionStatusDTO.builder().token(Authorization.substring(7)).id(id).status(TransactionStatus.CONFIRMED)
                     .build();
             return ResponseEntity.ok(transactionService.editTransactionStatus(editTransactionStatusDTO));
         }
@@ -140,7 +140,7 @@ public class TransactionController {
         var user = transactionService.verifyUser(Authorization);
         Transaction transaction = transactionRepository.getReferenceById(id);
         if (transaction.getReceiver().equals(user.username) || user.username.equals("admin")) {
-            var editTransactionStatusDTO = EditTransactionStatusDTO.builder().id(id).status(TransactionStatus.REJECTED)
+            var editTransactionStatusDTO = EditTransactionStatusDTO.builder().token(Authorization.substring(7)).id(id).status(TransactionStatus.REJECTED)
                     .build();
             return ResponseEntity.ok(transactionService.editTransactionStatus(editTransactionStatusDTO));
         }

@@ -75,6 +75,7 @@ public class TransactionService {
 
     public Transaction editTransactionStatus(EditTransactionStatusDTO editTransactionStatusDTO) {
         try (Session session = sessionFactory.openSession()) {
+            LOGGER.info(editTransactionStatusDTO.toString());
             var user = verifyUser("Bearer " + editTransactionStatusDTO.token);
             // Transaction transaction = transactionRepository.getReferenceById(editTransactionStatusDTO.id);
             var transaction = session.get(Transaction.class, editTransactionStatusDTO.id);
@@ -82,7 +83,8 @@ public class TransactionService {
                 transaction.setStatus(editTransactionStatusDTO.status);
             }
             LOGGER.info(transaction.toString());
-            return transactionRepository.save(transaction);
+            session.merge(transaction);
+            return transaction;
         }
     }
 
