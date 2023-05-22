@@ -83,7 +83,9 @@ public class TransactionService {
                 transaction.setStatus(editTransactionStatusDTO.status);
             }
             LOGGER.info(transaction.toString());
+            session.beginTransaction();
             session.merge(transaction);
+            session.getTransaction().commit();
             return transaction;
         }
     }
