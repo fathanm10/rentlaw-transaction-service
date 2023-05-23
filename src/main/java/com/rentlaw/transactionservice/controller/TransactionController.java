@@ -78,7 +78,7 @@ public class TransactionController {
         return transactionRepository.findTransactionsBySenderOrReceiver(user.username, user.username);
     }
 
-    @PostMapping(value = "/", consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })
+    @PostMapping("/")
     @Operation(summary = "Creates new transaction", security = { @SecurityRequirement(name = "bearer-key") })
     public ResponseEntity createTransaction(@Parameter(hidden = true) @RequestHeader String Authorization,
             @RequestParam String receiver,
